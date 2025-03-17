@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>主页</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        .user-info {
+            background-color: #e9f7ef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .nav-links {
+            margin-top: 20px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .nav-links a:hover {
+            background-color: #45a049;
+        }
+        .logout-form {
+            display: inline-block;
+        }
+        .logout-button {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .logout-button:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>欢迎来到首页</h1>
+        
+        <!-- 登录用户信息 -->
+        <div class="user-info" sec:authorize="isAuthenticated()">
+            <p>当前登录用户: <strong sec:authentication="name"></strong></p>
+            <p>用户角色: <strong sec:authentication="principal.authorities"></strong></p>
+        </div>
+
+        <!-- 导航链接 -->
+        <div class="nav-links">
+            <a th:href="@{/}">首页</a>
+            <a th:href="@{/hello}" sec:authorize="isAuthenticated()">受保护页面</a>
+            
+            <!-- 登出表单 -->
+            <form th:action="@{/logout}" method="post" class="logout-form" sec:authorize="isAuthenticated()">
+                <input type="submit" value="登出" class="logout-button"/>
+            </form>
+            
+            <!-- 未登录时显示登录链接 -->
+            <a th:href="@{/login}" sec:authorize="!isAuthenticated()">登录</a>
+            <a th:href="@{/register}" sec:authorize="!isAuthenticated()">注册</a>
+        </div>
+    </div>
+</body>
+</html>
