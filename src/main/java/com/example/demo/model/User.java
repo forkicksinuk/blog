@@ -44,6 +44,12 @@ public class User {
     @Column(name = "create_time")
     private LocalDateTime createTime;
 
+    /**
+     * 手机号字段
+     */
+    @Column(unique = true, length = 20)
+    private String phoneNumber;
+
     // 构造器：必须提供无参构造器，否则 JPA 在查询时可能会报错
     public User() {
         // 初始化创建时间，当然你也可以在 Service 层处理这个逻辑
@@ -89,5 +95,13 @@ public class User {
     
     public void setCreateTime(LocalDateTime createTime) {
         this.createTime = createTime;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 }

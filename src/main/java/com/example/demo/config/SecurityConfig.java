@@ -65,16 +65,16 @@ public class SecurityConfig {
             .formLogin(form -> form
                 .loginPage("/auth/login")             // 自定义登录页面的路径
                 .loginProcessingUrl("/auth/perform-login")  // 处理登录表单提交的URL
-                .defaultSuccessUrl("/home", true)      // 强制登录成功后始终跳转到/home
+                .defaultSuccessUrl("/home")      // 登录成功后如果没有之前的请求页面则跳转到/home
                 .failureUrl("/auth/login?error")      // 登录失败后跳转的URL
                 .permitAll()                     // 允许所有用户访问登录页面
             )
             .logout(logout -> logout
-                .logoutSuccessUrl("/auth/login?logout")
+                .logoutSuccessUrl("/home")
                 .permitAll()
             )
             .authenticationProvider(authenticationProvider());
-        
+
         return http.build();
     }
 }

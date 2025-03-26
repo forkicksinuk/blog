@@ -20,7 +20,7 @@
             border-radius: 5px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        h1 {
+        h1, h2 {
             color: #333;
         }
         .user-info {
@@ -31,8 +31,9 @@
         }
         .nav-links {
             margin-top: 20px;
+            margin-bottom: 20px;
         }
-        .nav-links a {
+        .nav-links a, .new-post-btn {
             display: inline-block;
             margin-right: 10px;
             padding: 8px 15px;
@@ -41,7 +42,7 @@
             text-decoration: none;
             border-radius: 4px;
         }
-        .nav-links a:hover {
+        .nav-links a:hover, .new-post-btn:hover {
             background-color: #45a049;
         }
         .logout-form {
@@ -57,6 +58,50 @@
         }
         .logout-button:hover {
             background-color: #d32f2f;
+        }
+        .post-list {
+            margin-top: 20px;
+        }
+        .post-item {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+        .post-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .post-meta {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .post-content {
+            line-height: 1.5;
+        }
+        .new-post-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1.1em;
+            cursor: pointer;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 15px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+        }
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+        .alert-danger {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
         }
     </style>
 </head>
@@ -83,6 +128,38 @@
             <!-- 未登录时显示登录链接 -->
             <a th:href="@{/login}" sec:authorize="!isAuthenticated()">登录</a>
             <a th:href="@{/register}" sec:authorize="!isAuthenticated()">注册</a>
+        </div>
+        
+        <!-- 消息提示 -->
+        <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+        <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+        
+        <!-- 新建贴子按钮 -->
+        <div sec:authorize="isAuthenticated()">
+            <a th:href="@{/posts/new}" class="new-post-btn">新建贴子</a>
+        </div>
+        
+        <!-- 贴子列表 -->
+        <div class="post-list">
+            <h2>最新贴子</h2>
+            
+            <div th:if="${posts.empty}">
+                <p>暂无贴子</p>
+            </div>
+            
+            <div th:each="post : ${posts}" class="post-item">
+                <a th:href="@{/posts/{id}(id=${post.id})}" style="text-decoration: none; color: inherit;">
+                    <div class="post-title" th:text="${post.title}">贴子标题</div>
+                </a>
+                <div class="post-meta">
+                    <span>作者: </span><span th:text="${post.author}">作者名</span>
+                    <span> | 发布时间: </span><span th:text="${#temporals.format(post.createTime, 'yyyy-MM-dd HH:mm')}">2025-03-24</span>
+                </div>
+                <div class="post-content" th:text="${#strings.length(post.content) > 100 ? #strings.substring(post.content, 0, 100) + '...' : post.content}">贴子内容...</div>
+                <a th:href="@{/posts/{id}(id=${post.id})}" style="color: #4CAF50; text-decoration: none; display: block; margin-top: 10px;">
+                    查看详情
+                </a>
+            </div>
         </div>
     </div>
 </body>

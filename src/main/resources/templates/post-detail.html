@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:th="https://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <title>贴子详情</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .post-meta {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .post-content {
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .nav-links {
+            margin-top: 30px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin-right: 10px;
+            padding: 8px 15px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .nav-links a:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 th:text="${post.title}">贴子标题</h1>
+        
+        <div class="post-meta">
+            <span>作者: </span><span th:text="${post.author}">作者名</span>
+            <span> | 发布时间: </span><span th:text="${#temporals.format(post.createTime, 'yyyy-MM-dd HH:mm')}">2025-03-24</span>
+            <span> | 最后更新: </span><span th:text="${#temporals.format(post.updateTime, 'yyyy-MM-dd HH:mm')}">2025-03-24</span>
+        </div>
+        
+        <div class="post-content" th:text="${post.content}">
+            贴子内容...
+        </div>
+        
+        <div class="nav-links">
+            <a th:href="@{/home}">返回首页</a>
+        </div>
+    </div>
+</body>
+</html>
