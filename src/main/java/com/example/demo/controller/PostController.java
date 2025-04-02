@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.annotation.Validated;
 
 import java.security.Principal;
+import java.util.HashMap; // Import HashMap
+import java.util.Map; // Import Map
 // import java.util.Optional; // 不再需要 Optional
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -123,12 +125,16 @@ public class PostController {
         }
         
         try {
-            // 调用服务层方法处理投票请求
-            PostService.VoteResult result = postService.handleVote(id, voteRequest.getVoteType());
-            
+            result;
+            if(voteRequest.getVoteType().equals("like")){
+                result = postService.upvote(id);
+            }
+            else {
+                result = postService.downvote(id);
+            }            
             // 返回更新后的计数
-            return ResponseEntity.ok()
-                .body(result);
+            if(result.equals("succeed")) return ResponseEntity<>();
+            else return "shibai"
                 
         } catch (ResourceNotFoundException e) {
             logger.error("Attempt to vote for non-existent post", e);
@@ -137,29 +143,11 @@ public class PostController {
             logger.error("Invalid vote type", e);
             return new ResponseEntity<>("无效的投票类型", HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            logger.error("Error processing vote", e);
-            return new ResponseEntity<>("处理投票时发生错误", HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-    
-    // 保留现有的上下投票方法，以保持兼容性
-    @PostMapping("/{id}/upvote")
-    public ResponseEntity<Void> upvote(@PathVariable @NotNull Long id) {
-        try {
-            postService.upvote(id);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @PostMapping("/{id}/downvote")
-    public ResponseEntity<Void> downvote(@PathVariable @NotNull Long id) {
-        try {
-            postService.downvote(id);
-            return new ResponseEntity<>(HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            logger.error("Error processing vote for post id: {}", id, e); // Log with post ID
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("success", false);
+            responseBody.put("message", "处理投票时发生内部错误，请稍后重试。");
+            return new ResponseEntity<>(responseBody, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }

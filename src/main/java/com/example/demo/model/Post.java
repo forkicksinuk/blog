@@ -28,8 +28,6 @@ public class Post {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
-    @Column(columnDefinition = "integer default 0")
-    private Integer votes = 0;
 
     @Column(name = "dislike_count", columnDefinition = "integer default 0") // Map to dislike_count column with default
     private Integer dislikeCount = 0;
@@ -52,13 +50,6 @@ public class Post {
 
     public void setDislikeCount(Integer dislikeCount) {
         this.dislikeCount = dislikeCount;
-    }
-    public Integer getVotes() {
-        return votes;
-    }
-
-    public void setVotes(Integer votes) {
-        this.votes = votes;
     }
 
     public Long getId() {

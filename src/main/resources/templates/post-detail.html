@@ -74,6 +74,60 @@
             font-size: 18px;
             margin: 0 15px;
             font-weight: bold;
+            /* Styles copied from home.html for consistency */
+            display: inline-flex; /* Align icon and text */
+            align-items: center;
+            margin-left: 5px; /* Space between icon and count */
+            font-size: 0.9em; /* Smaller font size for count */
+            min-width: 15px; /* Ensure space for count */
+            text-align: right;
+        }
+        .like-count { /* Specific color for like count */
+             color: green;
+        }
+        .dislike-count { /* Specific color for dislike count */
+             color: red;
+        }
+        .like-button { /* Style for like button */
+            color: green;
+            border: 1px solid green; /* Ensure border style and width */
+        }
+        .dislike-button { /* Style for dislike button */
+            color: red;
+            border: 1px solid red; /* Ensure border style and width */
+        }
+        .vote-button.active-vote { /* Style for clicked button */
+            background-color: #e0e0e0; /* Example: Light gray background */
+            font-weight: bold;
+        }
+        /* Toast notification styles */
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 2px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1;
+            left: 50%;
+            bottom: 30px;
+            font-size: 17px;
+            opacity: 0;
+            transition: opacity 0.5s, visibility 0.5s, bottom 0.5s;
+        }
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px; /* Adjust position */
+        }
+        .toast.error {
+            background-color: #f44336; /* Red for errors */
+        }
+        .toast.success {
+             background-color: #4CAF50; /* Green for success */
         }
     </style>
 </head>
@@ -92,10 +146,17 @@
         </div>
         
         <div class="vote-section">
-            <button class="vote-button upvote" onclick="vote(true)">👍 点赞</button>
-            <span class="vote-count" th:text="${post.votes}">0</span>
-            <button class="vote-button downvote" onclick="vote(false)">👎 点踩</button>
+             <!-- Apply styles similar to home.html -->
+            <button class="vote-button like-button" onclick="vote(true, this)">
+                👍 <span class="like-count" th:text="${post.likeCount}">0</span>
+            </button>
+            <button class="vote-button dislike-button" onclick="vote(false, this)">
+                👎 <span class="dislike-count" th:text="${post.dislikeCount}">0</span>
+            </button>
         </div>
+
+        <!-- Toast Notification Element -->
+        <div id="toast" class="toast">Some notification message..</div>
 
         <div class="nav-links">
             <a th:href="@{/home}">返回首页</a>
@@ -103,25 +164,117 @@
 
         <script th:inline="javascript">
             const postId = /*[[${post.id}]]*/ null;
+            // Get references to both count spans within the buttons
+            const likeCountElement = document.querySelector('.like-button .like-count');
+            const dislikeCountElement = document.querySelector('.dislike-button .dislike-count');
+            const toastElement = document.getElementById('toast');
 
-            async function vote(isUpvote) {
+            // Function to get CSRF token from cookie
+            function getCsrfToken() {
+                const name = 'XSRF-TOKEN=';
+                const decodedCookie = decodeURIComponent(document.cookie);
+                const ca = decodedCookie.split(';');
+                for(let i = 0; i <ca.length; i++) {
+                    let c = ca[i];
+                    while (c.charAt(0) == ' ') {
+                        c = c.substring(1);
+                    }
+                    if (c.indexOf(name) == 0) {
+                        return c.substring(name.length, c.length);
+                    }
+                }
+                return "";
+            }
+
+            // Function to show toast notification
+            function showToast(message, type = 'info', duration = 3000) {
+                toastElement.textContent = message;
+                toastElement.className = 'toast show ' + type; // Add type class (error, success)
+                
+                // After duration, hide the toast
+                setTimeout(() => { 
+                    toastElement.className = toastElement.className.replace('show', ''); 
+                }, duration);
+            }
+
+            async function vote(isUpvote, buttonElement) {
+                // Optional: Add visual feedback to the button
+                buttonElement.disabled = true; 
+                const originalText = buttonElement.textContent;
+                buttonElement.textContent = '处理中...';
+
+                const csrfToken = getCsrfToken(); // Get CSRF token from cookie
+                if (!csrfToken) {
+                    showToast('无法获取 CSRF 令牌，请刷新页面重试', 'error');
+                    buttonElement.disabled = false;
+                    buttonElement.textContent = originalText;
+                    return; // Stop if token is missing
+                }
+
                 try {
                     const response = await fetch(`/api/posts/${postId}/${isUpvote ? 'upvote' : 'downvote'}`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json'
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json', // Expect JSON response
+                            'X-XSRF-TOKEN': csrfToken // Include CSRF token in the header
                         }
                     });
                     
+                    const data = await response.json(); // Always try to parse JSON
+
                     if (response.ok) {
-                        // 刷新页面以更新投票计数
-                        location.reload();
+                        // Backend now returns { success: true, newLikeCount: X, newDislikeCount: Y, message: "..." }
+                        if (data && typeof data.newLikeCount !== 'undefined' && typeof data.newDislikeCount !== 'undefined') {
+                            // Update both counts
+                            likeCountElement.textContent = data.newLikeCount;
+                            dislikeCountElement.textContent = data.newDislikeCount;
+                            showToast(data.message || (isUpvote ? '点赞成功' : '点踩成功'), 'success');
+
+                            // Add active class to clicked button, remove from the other
+                            const otherButton = isUpvote ? buttonElement.nextElementSibling : buttonElement.previousElementSibling;
+                            buttonElement.classList.add('active-vote');
+                            if (otherButton && otherButton.classList.contains('vote-button')) {
+                                otherButton.classList.remove('active-vote');
+                            }
+
+                        } else {
+                             // Fallback if counts are not returned as expected
+                             showToast(data.message || '操作成功，但计数更新失败', 'warning'); // Use warning color
+                             // Consider fetching the new count separately if needed, or reloading as a last resort
+                             // location.reload(); 
+                        }
                     } else {
-                        alert('投票失败，请稍后重试');
+                        // Handle specific errors based on status code or error message from backend
+                        let errorMessage = `投票失败 (${response.status})`; // Default error
+                        try {
+                             // Try to parse the response body as JSON, even for errors
+                             const errorData = await response.json(); 
+                             if (errorData && errorData.message) {
+                                 errorMessage = errorData.message; // Use message from backend if available
+                             } else if (response.statusText) {
+                                 errorMessage = response.statusText; // Fallback to status text
+                             }
+                        } catch (parseError) {
+                             // If parsing fails, try reading as text
+                             try {
+                                 const textError = await response.text();
+                                 if (textError) {
+                                     errorMessage = textError.substring(0, 100); // Show first 100 chars
+                                 }
+                             } catch (textReadError) {
+                                 console.error("Could not read error response body:", textReadError);
+                             }
+                        }
+                        showToast(errorMessage, 'error');
                     }
                 } catch (error) {
-                    console.error('Error:', error);
-                    alert('投票失败，请稍后重试');
+                    console.error('Vote Error:', error);
+                    showToast('投票时发生网络或脚本错误，请检查控制台。', 'error'); // More generic message
+                } finally {
+                     // Restore button state
+                     buttonElement.disabled = false;
+                     buttonElement.textContent = originalText;
                 }
             }
         </script>

@@ -117,11 +117,15 @@
         }
         .like-button {
             color: green;
-            border-color: green;
+            border: 1px solid green; /* Explicitly set border */
         }
         .dislike-button {
             color: red;
-            border-color: red;
+            border: 1px solid red; /* Explicitly set border */
+        }
+         .vote-button.active-vote { /* Style for clicked button (copied from post-detail) */
+            background-color: #e0e0e0; /* Example: Light gray background */
+            font-weight: bold;
         }
         .view-detail-link { /* Style for the separate "View Detail" link */
              color: #4CAF50;
@@ -151,6 +155,38 @@
             color: #721c24;
             background-color: #f8d7da;
             border-color: #f5c6cb;
+        }
+        /* Toast notification styles (copied from post-detail) */
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 2px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1000; /* Ensure it's on top */
+            left: 50%;
+            bottom: 30px;
+            font-size: 17px;
+            opacity: 0;
+            transition: opacity 0.5s, visibility 0.5s, bottom 0.5s;
+        }
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 50px; /* Adjust position */
+        }
+        .toast.error {
+            background-color: #f44336; /* Red for errors */
+        }
+        .toast.success {
+             background-color: #4CAF50; /* Green for success */
+        }
+        .toast.warning {
+             background-color: #ff9800; /* Orange for warnings */
         }
     </style>
 </head>
@@ -219,10 +255,30 @@
                  </div>
             </div>
         </div>
+
+        <!-- Toast Notification Element -->
+        <div id="toast" class="toast">Some notification message..</div>
     </div>
 
     <script th:inline="javascript">
         /*<![CDATA[*/
+        const toastElement = document.getElementById('toast');
+
+        // Function to show toast notification (copied from post-detail)
+        function showToast(message, type = 'info', duration = 3000) {
+            toastElement.textContent = message;
+            // Ensure previous type classes are removed before adding new ones
+            toastElement.className = 'toast show'; // Reset classes
+            if (type) {
+                 toastElement.classList.add(type);
+            }
+            
+            // After duration, hide the toast
+            setTimeout(() => { 
+                toastElement.className = toastElement.className.replace('show', ''); 
+            }, duration);
+        }
+
 
         // Helper function to get cookie by name (copied from post-form.html)
         function getCookie(name) {
@@ -274,8 +330,7 @@
 
             if (!csrfToken) {
                 console.warn('XSRF-TOKEN cookie not found. Voting CSRF protection might fail.');
-                // Optionally alert the user or try to refresh the token again
-                alert('安全令牌丢失，请刷新页面后重试投票。');
+                showToast('安全令牌丢失，请刷新页面后重试投票。', 'error'); // Use toast
                 return;
             }
 
@@ -304,24 +359,50 @@
                     if (dislikeCountSpan) {
                         dislikeCountSpan.textContent = updatedCounts.dislikeCount;
                     }
-                     // Optional: Add visual feedback (e.g., change button style briefly)
-                     button.style.backgroundColor = '#e0ffe0'; // Example feedback
-                     setTimeout(() => { button.style.backgroundColor = ''; }, 300);
+                     // Add active class to clicked button, remove from the other
+                     const likeButton = document.querySelector(`.post-actions button.like-button[data-post-id="${postId}"]`);
+                     const dislikeButton = document.querySelector(`.post-actions button.dislike-button[data-post-id="${postId}"]`);
+                     if (voteType === 'like' && likeButton) {
+                         likeButton.classList.add('active-vote');
+                         if (dislikeButton) dislikeButton.classList.remove('active-vote');
+                     } else if (voteType === 'dislike' && dislikeButton) {
+                         dislikeButton.classList.add('active-vote');
+                         if (likeButton) likeButton.classList.remove('active-vote');
+                     }
 
                 } else if (response.status === 401 || response.status === 403) {
-                     // Handle unauthorized/forbidden (e.g., redirect to login)
-                     alert('请先登录再投票！');
-                     window.location.href = /*[[@{/login}]]*/ '/login';
+                     // Handle unauthorized/forbidden
+                     showToast('请先登录再投票！', 'error'); // Use toast
+                     // Optional: redirect after a short delay
+                     // setTimeout(() => { window.location.href = /*[[@{/login}]]*/ '/login'; }, 1500);
                 } 
                 else {
                     // Handle other errors
-                    const errorData = await response.text(); // Or response.json() if backend sends JSON error
-                    console.error('Vote failed:', response.status, errorData);
-                    alert(`投票失败: ${errorData || response.statusText}`);
+                    let errorMessage = `投票失败 (${response.status})`; // Default error
+                    try {
+                         // Try to parse the response body as JSON, even for errors
+                         const errorData = await response.json(); 
+                         if (errorData && errorData.message) {
+                             errorMessage = errorData.message; // Use message from backend if available
+                         } else if (response.statusText) {
+                             errorMessage = response.statusText; // Fallback to status text
+                         }
+                    } catch (parseError) {
+                         // If parsing fails, try reading as text
+                         try {
+                             const textError = await response.text();
+                             if (textError) {
+                                 errorMessage = textError.substring(0, 100); // Show first 100 chars
+                             }
+                         } catch (textReadError) {
+                             console.error("Could not read error response body:", textReadError);
+                         }
+                    }
+                    showToast(errorMessage, 'error'); // Use toast
                 }
             } catch (error) {
                 console.error('Error during fetch:', error);
-                alert('投票时发生网络错误，请稍后重试。');
+                 showToast('投票时发生网络或脚本错误，请检查控制台。', 'error'); // More generic message
             }
          }
          /*]]>*/

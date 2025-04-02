@@ -11,6 +11,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam; // 添加 RequestParam 导入
+import org.springframework.data.domain.Page; // Added import
 
 import com.example.demo.model.Post;
 import com.example.demo.service.PostService;
@@ -51,11 +53,13 @@ public class ViewController {
     }
 
     /**
-     * 主页 - 显示所有贴子列表
+     * 主页 - 显示所有贴子列表（支持分页）
      */
     @GetMapping({"/", "/home"})
-    public String home(Model model) {
-        List<Post> posts = postService.getAllPostsOrderByCreateTimeDesc();
+    public String home(Model model,
+                       @RequestParam(defaultValue = "0") int page, // 添加 page 请求参数，默认值为 0
+                       @RequestParam(defaultValue = "10") int size) { // 添加 size 请求参数，默认值为 10
+        Page<Post> posts = postService.getAllPostsOrderByCreateTimeDesc(page, size); // 传递 page 和 size 参数
         model.addAttribute("posts", posts);
         return "home";
     }

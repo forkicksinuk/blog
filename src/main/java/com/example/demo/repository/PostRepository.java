@@ -15,7 +15,7 @@ public interface PostRepository extends JpaRepository<Post,Long> {
     Page<Post> findByAuthor(String author, Pageable pageable);
     
     // 按创建时间降序排列所有帖子
-    Page<Post> findAllByOrderByCreateTimeDesc();
+    Page<Post> findAllByOrderByCreateTimeDesc(Pageable pageable);
     
     @Modifying
     @Query("UPDATE Post p SET p.likeCount = p.likeCount + 1 WHERE p.id = :id")

@@ -77,9 +77,13 @@ public class PostService {
         }
     }
     
-    public Page<Post> getAllPostsOrderByCreateTimeDesc() {
+    // 添加 page 和 size 参数
+    public Page<Post> getAllPostsOrderByCreateTimeDesc(int page, int size) {
         try {
-            return postRepository.findAllByOrderByCreateTimeDesc();
+            // 创建 Pageable 对象
+            Pageable pageable = PageRequest.of(page, size);
+            // 传递 Pageable 参数给 Repository 方法
+            return postRepository.findAllByOrderByCreateTimeDesc(pageable);
         } catch (Exception e) {
             logger.error("Error finding all posts ordered by create time", e);
             return Page.empty(); // Return empty Page instead of null
@@ -90,6 +94,7 @@ public class PostService {
     public void upvote(Long postId) {
         try {
             postRepository.incrementLikeCount(postId);
+            return "succeed";
         } catch (Exception e) {
             logger.error("Error upvoting post", e);
             throw e;
@@ -100,46 +105,13 @@ public class PostService {
     public void downvote(Long postId) {
         try {
             postRepository.incrementDislikeCount(postId);
+            return "succeed";
         } catch (Exception e) {
             logger.error("Error downvoting post", e);
             throw e;
         }
     }
-    
-    /**
-     * 处理给帖子点赞或点踩操作，并返回更新后的数值
-     * 
-     * @param postId 帖子ID
-     * @param voteType 投票类型 (like 或 dislike)
-     * @return 包含更新后like和dislike计数的对象
-     */
-    @Transactional
-    public VoteResult handleVote(Long postId, String voteType) {
-        try {
-            // 验证帖子存在
-            getPostById(postId);
-            
-            if ("like".equalsIgnoreCase(voteType)) {
-                postRepository.incrementLikeCount(postId);
-                // postRepository.updateVotes(postId, 1); // 移除对 updateVotes 的调用
-            } else if ("dislike".equalsIgnoreCase(voteType)) {
-                postRepository.incrementDislikeCount(postId);
-                // postRepository.updateVotes(postId, -1); // 移除对 updateVotes 的调用
-            } else {
-                throw new IllegalArgumentException("Invalid vote type: " + voteType);
-            }
-            
-            // 获取更新后的投票数
-            Object[] counts = postRepository.getVoteCounts(postId);
-            Integer likeCount = (Integer) counts[0];
-            Integer dislikeCount = (Integer) counts[1];
-            
-            return new VoteResult(likeCount, dislikeCount);
-        } catch (Exception e) {
-            logger.error("Error processing vote for post id: " + postId, e);
-            throw e;
-        }
-    }
+
     
     /**
      * 用于存储和传输投票计数的内部类
