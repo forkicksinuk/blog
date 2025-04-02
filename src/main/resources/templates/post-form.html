@@ -75,19 +75,128 @@
     <div class="container">
         <h1>新建贴子</h1>
         
-        <form th:action="@{/posts/save}" th:object="${post}" method="post">
+        <form id="postForm">
+            <!-- Hidden CSRF input field removed -->
+            
             <div class="form-group">
                 <label for="title">标题</label>
-                <input type="text" id="title" th:field="*{title}" required>
+                <input type="text" id="title" name="title" required>
             </div>
             
             <div class="form-group">
                 <label for="content">内容</label>
-                <textarea id="content" th:field="*{content}" required></textarea>
+                <textarea id="content" name="content" required></textarea>
             </div>
             
             <button type="submit" class="submit-button">发布贴子</button>
         </form>
+
+        <div id="message" style="margin-top: 10px; padding: 10px; display: none;"></div>
+
+        <script>
+            // Helper function to get cookie by name
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        // Does this cookie string begin with the name we want?
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            // Function to proactively fetch a resource to ensure CSRF cookie is fresh
+            async function ensureCsrfToken() {
+                try {
+                    // Make a request to an authenticated endpoint.
+                    // The response itself isn't important, but the request/response cycle
+                    // ensures the browser receives the latest XSRF-TOKEN cookie if needed.
+                    await fetch('/api/posts/ping');
+                    console.log('CSRF token potentially refreshed.');
+                } catch (error) {
+                    // This might fail if the user isn't logged in yet, which is okay.
+                    console.warn('Ping request failed, possibly not logged in:', error);
+                }
+            }
+
+            // Run the CSRF token refresh function when the page content is loaded
+            document.addEventListener('DOMContentLoaded', ensureCsrfToken);
+
+            document.getElementById('postForm').addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const title = document.getElementById('title').value;
+                const content = document.getElementById('content').value;
+                const messageDiv = document.getElementById('message');
+                // Read the token from the XSRF-TOKEN cookie
+                const csrfToken = getCookie('XSRF-TOKEN'); 
+
+                try {
+                    const headers = {
+                        'Content-Type': 'application/json',
+                    };
+                    // Add the X-XSRF-TOKEN header if the token exists (Corrected header name)
+                    if (csrfToken) {
+                        headers['X-XSRF-TOKEN'] = csrfToken;
+                    } else {
+                        console.warn('XSRF-TOKEN cookie not found. CSRF protection might fail.');
+                    }
+
+                    const response = await fetch('/api/posts/save', {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({
+                            title: title,
+                            content: content
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        messageDiv.style.display = 'block';
+                        messageDiv.style.backgroundColor = '#dff0d8';
+                        messageDiv.style.color = '#3c763d';
+                        messageDiv.textContent = '发布成功！正在跳转...';
+                        
+                        setTimeout(() => {
+                            window.location.href = '/home';
+                        }, 1500);
+                    } else {
+                        // Read the error message from the response body
+                        const errorText = await response.text(); 
+                        messageDiv.style.display = 'block';
+                        messageDiv.style.backgroundColor = '#f2dede';
+                        messageDiv.style.color = '#a94442';
+
+                        if (response.status === 401) {
+                            // Handle Unauthorized error
+                            messageDiv.textContent = '发布失败：请先登录。 ' + (errorText || '(未认证)');
+                        } else if (response.status === 403) {
+                            // Handle Forbidden error (CSRF or authorization)
+                            messageDiv.textContent = '发布失败：无权访问或安全验证失败 (403)。 ' + (errorText || '');
+                        } else if (response.status === 500) {
+                            // Handle Internal Server Error
+                            messageDiv.textContent = '发布失败：服务器内部错误。 ' + (errorText || '(无法创建帖子)');
+                        } else {
+                            // Handle other non-ok statuses
+                            messageDiv.textContent = `发布失败：错误 ${response.status}。 ${errorText || '(未知错误)'}`;
+                        }
+                    }
+                } catch (error) {
+                    // Handle network errors or other issues during fetch
+                    console.error('Fetch error:', error); // Log the actual error for debugging
+                    messageDiv.style.display = 'block';
+                    messageDiv.style.backgroundColor = '#f2dede';
+                    messageDiv.style.color = '#a94442';
+                    messageDiv.textContent = '发布失败：无法连接到服务器或发生网络错误。';
+                }
+            });
+        </script>
         
         <div class="nav-links">
             <a th:href="@{/home}">返回首页</a>

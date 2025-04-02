@@ -65,8 +65,15 @@
         .post-item {
             border: 1px solid #ddd;
             padding: 15px;
-            margin-bottom: 10px;
+            margin-bottom: 15px; /* Increased margin */
             border-radius: 4px;
+            display: block; /* Make the whole item a block link */
+            text-decoration: none; /* Remove underline from link */
+            color: inherit; /* Inherit text color */
+            transition: background-color 0.2s ease; /* Add hover effect */
+        }
+        .post-item:hover {
+            background-color: #f9f9f9; /* Light background on hover */
         }
         .post-title {
             font-size: 1.2em;
@@ -80,6 +87,48 @@
         }
         .post-content {
             line-height: 1.5;
+            margin-bottom: 10px;
+        }
+        .post-actions { /* Renamed from post-votes for clarity */
+            margin-top: 10px;
+            display: flex; /* Use flexbox for alignment */
+            align-items: center;
+        }
+        .vote-button {
+            background: none;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 1.1em; /* Larger font size for icons */
+            margin-right: 10px;
+            display: inline-flex; /* Align icon and text */
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+        .vote-button:hover {
+            background-color: #eee;
+        }
+        .vote-button span {
+            margin-left: 5px; /* Space between icon and count */
+            font-size: 0.9em; /* Smaller font size for count */
+            min-width: 15px; /* Ensure space for count */
+            text-align: right;
+        }
+        .like-button {
+            color: green;
+            border-color: green;
+        }
+        .dislike-button {
+            color: red;
+            border-color: red;
+        }
+        .view-detail-link { /* Style for the separate "View Detail" link */
+             color: #4CAF50;
+             text-decoration: none;
+             display: inline-block; /* Keep it separate */
+             margin-top: 10px;
+             font-size: 0.9em;
         }
         .new-post-btn {
             margin-top: 20px;
@@ -147,20 +196,136 @@
                 <p>暂无贴子</p>
             </div>
             
-            <div th:each="post : ${posts}" class="post-item">
-                <a th:href="@{/posts/{id}(id=${post.id})}" style="text-decoration: none; color: inherit;">
+            <!-- Wrap post item content in a link, excluding action buttons -->
+            <div th:each="post : ${posts}" class="post-item-container" style="margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; background-color: white;">
+                 <a th:href="@{/posts/{id}(id=${post.id})}" class="post-item"> <!-- Link wraps content -->
                     <div class="post-title" th:text="${post.title}">贴子标题</div>
-                </a>
-                <div class="post-meta">
-                    <span>作者: </span><span th:text="${post.author}">作者名</span>
-                    <span> | 发布时间: </span><span th:text="${#temporals.format(post.createTime, 'yyyy-MM-dd HH:mm')}">2025-03-24</span>
-                </div>
-                <div class="post-content" th:text="${#strings.length(post.content) > 100 ? #strings.substring(post.content, 0, 100) + '...' : post.content}">贴子内容...</div>
-                <a th:href="@{/posts/{id}(id=${post.id})}" style="color: #4CAF50; text-decoration: none; display: block; margin-top: 10px;">
-                    查看详情
-                </a>
+                    <div class="post-meta">
+                        <span></span><span th:text="${post.author}">作者名</span>
+                        <span> |  </span><span th:text="${#temporals.format(post.createTime, 'yyyy-MM-dd HH:mm')}">2025 03 24</span>
+                    </div>
+                    <div class="post-content" th:text="${#strings.length(post.content) > 100 ? #strings.substring(post.content, 0, 100) + '...' : post.content}">贴子内容...</div>
+                 </a>
+                 <!-- Action buttons outside the main link -->
+                 <div class="post-actions" style="padding: 0 15px 15px 15px;">
+                    <button class="vote-button like-button" th:attr="data-post-id=${post.id}" onclick="handleVote(event, this, 'like')">
+                        👍 <span th:id="'like-count-' + ${post.id}" th:text="${post.likeCount}">0</span>
+                    </button>
+                    <button class="vote-button dislike-button" th:attr="data-post-id=${post.id}" onclick="handleVote(event, this, 'dislike')">
+                        👎 <span th:id="'dislike-count-' + ${post.id}" th:text="${post.dislikeCount}">0</span>
+                    </button>
+                    <!-- Optional: Keep "View Detail" if needed, styled differently -->
+                    <!-- <a th:href="@{/posts/{id}(id=${post.id})}" class="view-detail-link">查看详情</a> -->
+                 </div>
             </div>
         </div>
     </div>
-</body>
-</html>
+
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+
+        // Helper function to get cookie by name (copied from post-form.html)
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    // Does this cookie string begin with the name we want?
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Function to proactively fetch a resource to ensure CSRF cookie is fresh (Optional but good practice)
+        async function ensureCsrfToken() {
+            try {
+                // Make a request to an authenticated endpoint.
+                await fetch('/api/posts/ping');
+                console.log('CSRF token potentially refreshed for voting.');
+            } catch (error) {
+                console.warn('Ping request for voting failed, possibly not logged in:', error);
+            }
+        }
+
+        // Run the CSRF token refresh function when the page content is loaded
+        document.addEventListener('DOMContentLoaded', ensureCsrfToken);
+
+
+        async function handleVote(event, button, voteType) {
+            event.stopPropagation(); // Prevent triggering the parent link
+
+            const postId = button.getAttribute('data-post-id');
+            // Read the token from the XSRF-TOKEN cookie
+            const csrfToken = getCookie('XSRF-TOKEN');
+
+            // Check if user is authenticated (basic check, server-side is definitive)
+             const isAuthenticated = /*[[${#authorization.expression('isAuthenticated()')}]]*/ false;
+             if (!isAuthenticated) {
+                 // Redirect to login or show message
+                 window.location.href = /*[[@{/login}]]*/ '/login'; 
+                 // Alternatively, display a message: alert('请先登录再投票！');
+                 return;
+             }
+
+            if (!csrfToken) {
+                console.warn('XSRF-TOKEN cookie not found. Voting CSRF protection might fail.');
+                // Optionally alert the user or try to refresh the token again
+                alert('安全令牌丢失，请刷新页面后重试投票。');
+                return;
+            }
+
+            const url = `/api/posts/${postId}/vote`; // Target API endpoint
+
+            try {
+                 const headers = {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': csrfToken // Use the correct header name and token from cookie
+                 };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ voteType: voteType }) // Send vote type in body
+                });
+
+                if (response.ok) {
+                    const updatedCounts = await response.json();
+                    // Update counts on the page
+                    const likeCountSpan = document.getElementById(`like-count-${postId}`);
+                    const dislikeCountSpan = document.getElementById(`dislike-count-${postId}`);
+                    if (likeCountSpan) {
+                        likeCountSpan.textContent = updatedCounts.likeCount;
+                    }
+                    if (dislikeCountSpan) {
+                        dislikeCountSpan.textContent = updatedCounts.dislikeCount;
+                    }
+                     // Optional: Add visual feedback (e.g., change button style briefly)
+                     button.style.backgroundColor = '#e0ffe0'; // Example feedback
+                     setTimeout(() => { button.style.backgroundColor = ''; }, 300);
+
+                } else if (response.status === 401 || response.status === 403) {
+                     // Handle unauthorized/forbidden (e.g., redirect to login)
+                     alert('请先登录再投票！');
+                     window.location.href = /*[[@{/login}]]*/ '/login';
+                } 
+                else {
+                    // Handle other errors
+                    const errorData = await response.text(); // Or response.json() if backend sends JSON error
+                    console.error('Vote failed:', response.status, errorData);
+                    alert(`投票失败: ${errorData || response.statusText}`);
+                }
+            } catch (error) {
+                console.error('Error during fetch:', error);
+                alert('投票时发生网络错误，请稍后重试。');
+            }
+         }
+         /*]]>*/
+     </script>
+     <!-- Removed unnecessary CSRF meta tags -->
+ </body>
+ </html>

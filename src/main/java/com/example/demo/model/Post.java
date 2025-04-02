@@ -1,6 +1,7 @@
 package com.example.demo.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import java.time.LocalDateTime;
 
 
@@ -12,10 +13,13 @@ public class Post {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @NotBlank(message = "标题不能为空")
+    @Size(min = 2, max = 100, message = "标题长度必须在2-100字符之间")
     @Column(nullable = false)
     private String title;
 
-    @Column(columnDefinition =  "TEXT")
+    @NotBlank(message = "内容不能为空")
+    @Column(columnDefinition = "TEXT")
     private String content;
 
     @Column(name = "author")
@@ -24,8 +28,39 @@ public class Post {
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;
+    @Column(columnDefinition = "integer default 0")
+    private Integer votes = 0;
+
+    @Column(name = "dislike_count", columnDefinition = "integer default 0") // Map to dislike_count column with default
+    private Integer dislikeCount = 0;
+
+    @Column(name = "like_count", columnDefinition = "integer default 0") // Map to like_count column with default
+    private Integer likeCount = 0;
 
     // Getters and Setters
+
+    public Integer getLikeCount() {
+        return likeCount;
+    }
+
+    public void setLikeCount(Integer likeCount) {
+        this.likeCount = likeCount;
+    }
+    public Integer getDislikeCount() {
+        return dislikeCount;
+    }
+
+    public void setDislikeCount(Integer dislikeCount) {
+        this.dislikeCount = dislikeCount;
+    }
+    public Integer getVotes() {
+        return votes;
+    }
+
+    public void setVotes(Integer votes) {
+        this.votes = votes;
+    }
+
     public Long getId() {
         return id;
     }

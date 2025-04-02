@@ -16,6 +16,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler; // Import this handler
 
 import com.example.demo.repository.UserRepository;
 
@@ -57,7 +59,18 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
+        // Explicitly configure the CSRF request handler (though it's often the default)
+        CsrfTokenRequestAttributeHandler requestHandler = new CsrfTokenRequestAttributeHandler();
+        // The default header name expected by this handler when using CookieCsrfTokenRepository is X-XSRF-TOKEN
+        // requestHandler.setCsrfRequestAttributeName("_csrf"); // Default attribute name in request
+        // requestHandler.setHeaderName("X-XSRF-TOKEN"); // Default header name to check
+
         http
+            // Configure CSRF
+            .csrf(csrf -> csrf
+                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()) // Store token in a cookie accessible by JS
+                .csrfTokenRequestHandler(requestHandler) // Explicitly set the handler
+            )
             .authorizeHttpRequests(authz -> authz
                 .requestMatchers("/","/home","/auth/login","/auth/register","/auth/perform-register","/hello", "/css/**", "/js/**", "/images/**").permitAll()
                 .anyRequest().authenticated()

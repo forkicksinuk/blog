@@ -83,6 +83,8 @@
                 <label for="password">密码:</label>
                 <input type="password" id="password" name="password" required/>
             </div>
+            <!-- CSRF Token -->
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
             <button type="submit">登录</button>
         </form>
         <p style="text-align: center; margin-top: 15px;">没有账号？<a th:href="@{/auth/register}">注册</a></p>

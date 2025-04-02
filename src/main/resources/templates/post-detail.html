@@ -50,6 +50,31 @@
         .nav-links a:hover {
             background-color: #45a049;
         }
+        .vote-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .vote-button {
+            padding: 8px 15px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        .upvote {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .downvote {
+            background-color: #f44336;
+            color: white;
+        }
+        .vote-count {
+            font-size: 18px;
+            margin: 0 15px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -66,9 +91,40 @@
             贴子内容...
         </div>
         
+        <div class="vote-section">
+            <button class="vote-button upvote" onclick="vote(true)">👍 点赞</button>
+            <span class="vote-count" th:text="${post.votes}">0</span>
+            <button class="vote-button downvote" onclick="vote(false)">👎 点踩</button>
+        </div>
+
         <div class="nav-links">
             <a th:href="@{/home}">返回首页</a>
         </div>
+
+        <script th:inline="javascript">
+            const postId = /*[[${post.id}]]*/ null;
+
+            async function vote(isUpvote) {
+                try {
+                    const response = await fetch(`/api/posts/${postId}/${isUpvote ? 'upvote' : 'downvote'}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        // 刷新页面以更新投票计数
+                        location.reload();
+                    } else {
+                        alert('投票失败，请稍后重试');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('投票失败，请稍后重试');
+                }
+            }
+        </script>
     </div>
 </body>
 </html>

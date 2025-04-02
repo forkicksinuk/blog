@@ -74,13 +74,13 @@ public class ViewController {
      */
     @GetMapping("/posts/{id}")
     public String postDetail(@PathVariable Long id, Model model) {
-        Optional<Post> postOpt = postService.getPostById(id);
-        if (postOpt.isPresent()) {
-            model.addAttribute("post", postOpt.get());
-            return "post-detail";
-        } else {
-            return "redirect:/home";
-        }
+        // postService.getPostById 现在直接返回 Post 或抛出 ResourceNotFoundException
+        // ResourceNotFoundException 会被 GlobalExceptionHandler 处理并返回 404 页面或重定向
+        // 因此这里只需要处理成功的情况
+        Post post = postService.getPostById(id);
+        model.addAttribute("post", post);
+        return "post-detail";
+        // 不再需要检查 Optional 或手动重定向
     }
     
     /**
